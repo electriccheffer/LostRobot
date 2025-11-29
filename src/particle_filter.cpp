@@ -30,8 +30,26 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 0;  // TODO: Set the number of particles
+  
+  num_particles = 20;  // TODO: Set the number of particles
+  static std::default_random_engine engine(std::random_device{}()); 
 
+  std::normal_distribution<double> gaussianDistributionX(x,std[0]); 
+  std::normal_distribution<double> gaussianDistributionY(y,std[1]);
+  std::normal_distribution<double> gaussianDistributionTheta(theta,std[2]);
+  for(unsigned int particle_index = 0 ;particle_index < num_particles; particle_index++ ){
+ 	
+    Particle newParticle; 
+    newParticle.id = particle_index; 
+    newParticle.x = gaussianDistributionX(engine); 
+    newParticle.y = gaussianDistributionY(engine); 
+    newParticle.theta = gaussianDistributionTheta(engine);
+    newParticle.weight = 1.0; 
+    this->particles.push_back(newParticle);
+  
+  }
+  this->is_initialized = true; 
+	  
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], 
