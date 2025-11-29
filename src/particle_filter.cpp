@@ -6,7 +6,7 @@
  */
 
 #include "particle_filter.h"
-
+#include <cmath>
 #include <math.h>
 #include <algorithm>
 #include <iostream>
@@ -114,7 +114,30 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    */
+   
+  int observationSize = observations.size(); 
+  for(int observationIndex = 0; observationIndex < observationSize; observationIndex++){
+  	
+    LandmarkObs &observation = observations[observationIndex];
+    int landmarkID = -1; 
+    double minimum_distance = INFINITY;  
+    int predictionSize = predicted.size(); 
 
+    for(int predictionIndex = 0 ; predictionIndex < predictionSize ; predictionIndex++){
+
+      LandmarkObs &prediction = predicted[predictionIndex]; 
+      double distance = std::hypot(observation.x - prediction.x,
+		                   observation.y - prediction.y); 
+      if(distance < minimum_distance){
+      	
+      	minimum_distance = distance; 
+	landmarkID = prediction.id; 
+      }
+
+    }
+
+   observation.id = landmarkID; 
+  } 
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
