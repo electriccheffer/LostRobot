@@ -15,7 +15,7 @@
 #include <random>
 #include <string>
 #include <vector>
-
+#include "map.h"
 #include "helper_functions.h"
 
 using std::string;
@@ -156,7 +156,81 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
+   int numberOfParticles = this->particles.size(); 
+   for(int particleIndex = 0 ; particleIndex < numberOfParticles ; particleIndex++){
+   
+     Particle &particle = this->particles[particleIndex]; 
+     
+     int sizeOfObservations = observations.size(); 
+     std::vector<LandmarkObs> transformedObservations;
 
+     for(int observationIndex = 0 ; observationIndex < sizeOfObservations 
+		                  ; observationIndex++){
+     
+       LandmarkObs observation = observations[observationIndex]; 
+       double mapXPosition = particle.x + std::cos(particle.theta) * observation.x -
+	              std::sin(particle.theta) * observation.y; 
+       double mapYPosition = particle.y + std::sin(particle.theta) * observation.x +
+	              std::cos(particle.theta) * observation.y; 
+       LandmarkObs transformedObservation; 
+       transformedObservation.id = -1; 
+       transformedObservation.x = mapXPosition; 
+       transformedObservation.y = mapYPosition;
+       transformedObservations.push_back(transformedObservation);
+     }
+  	
+     std::vector<Map::single_landmark_s> mapLandmarkList = map_landmarks.landmark_list; 
+     std::vector<LandmarkObs> predictedLandmarks;
+     int numberOfLandmarks = mapLandmarkList.size(); 
+     for(int landmarkIndex = 0 ; landmarkIndex < numberOfLandmarks ; landmarkIndex++){
+   	
+       Map::single_landmark_s landmark = mapLandmarkList[landmarkIndex]; 
+       double distance = std::hypot(particle.x - landmark.x_f, particle.y - landmark.y_f); 
+       if(distance <= sensor_range){
+      	 LandmarkObs nearestLandmark; 
+	 nearestLandmark.id = landmark.id_i;
+	 nearestLandmark.x =  landmark.x_f; 
+	 nearestLandmark.y = landmark.y_f; 
+         predictedLandmarks.push_back(nearestLandmark); 
+       
+       }
+     }  
+     this->dataAssociation(predictedLandmarks,transformedObservations);
+     
+
+     particle.weight = 1.0; 
+     int transformedObservationsSize = transformedObservations.size(); 
+
+     for(int weightLoopIndex = 0 ; weightLoopIndex < transformedObservationsSize 
+		     						;weightLoopIndex++ ){
+     
+       LandmarkObs observation = transformedObservations[weightLoopIndex]; 
+       LandmarkObs associatedLandmark; 
+       bool found = false; 
+       for(LandmarkObs predicted : predictedLandmarks){
+         if(predicted.id == observation.id){
+	   associatedLandmark = predicted; 
+	   found = true; 
+	   break; 
+	 }
+       } 
+        
+       if (!found){
+         continue; 
+       }
+       double deltaX = observation.x - associatedLandmark.x; 
+       double deltaY = observation.y - associatedLandmark.y;
+       
+       double exponent = ((deltaX*deltaX) / (2*std_landmark[0]*std_landmark[0])) + 
+	                   ((deltaY * deltaY)/(2*std_landmark[1]*std_landmark[1])); 
+       
+       double gaussianNorm = 1 / (2 * M_PI * std_landmark[0] * std_landmark[1]); 
+       
+       double observationProbability = gaussianNorm * std::exp(-exponent); 
+       particle.weight *= observationProbability;  
+     
+     }  
+   }
 }
 
 void ParticleFilter::resample() {
