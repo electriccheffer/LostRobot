@@ -37,7 +37,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   std::normal_distribution<double> gaussianDistributionX(x,std[0]); 
   std::normal_distribution<double> gaussianDistributionY(y,std[1]);
   std::normal_distribution<double> gaussianDistributionTheta(theta,std[2]);
-  for(unsigned int particle_index = 0 ;particle_index < num_particles; particle_index++ ){
+  for(int particle_index = 0 ;particle_index < num_particles; particle_index++ ){
  	
     Particle newParticle; 
     newParticle.id = particle_index; 
@@ -61,6 +61,46 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
+  int numberOfParticles = this->particles.size(); 
+
+  static std::default_random_engine engine(std::random_device{}()); 
+  
+  for(int particleIndex = 0 ; particleIndex < numberOfParticles ; particleIndex++){
+  
+    Particle &particleReference = this->particles[particleIndex]; 
+    std::normal_distribution<double> gaussianDistributionX(particleReference.x,std_pos[0]); 
+    std::normal_distribution<double> gaussianDistributionY(particleReference.y,std_pos[1]);
+    std::normal_distribution<double> gaussianDistributionTheta(particleReference.theta,
+		    						std_pos[2]);
+  
+
+    if(yaw_rate != 0){
+    
+      particleReference.x += (velocity/yaw_rate) * (std::sin(particleReference.theta +
+				      				yaw_rate * delta_t)
+			      		      -
+					      std::sin(particleReference.theta)); 
+
+      particleReference.y += (velocity/yaw_rate) * (std::cos(particleReference.theta)
+			      		      -
+					      std::cos(particleReference.theta +
+				      				yaw_rate*delta_t)); 
+
+     particleReference.theta += yaw_rate * delta_t; 
+    
+    }
+    else{
+   	
+      particleReference.x += velocity * delta_t * std::cos(particleReference.theta);
+      particleReference.y += velocity * delta_t * std::sin(particleReference.theta);
+    
+    }
+    
+    particleReference.x += gaussianDistributionX(engine);
+    particleReference.y += gaussianDistributionY(engine);
+    particleReference.theta += gaussianDistributionTheta(engine);
+    
+  }
 
 }
 
