@@ -31,7 +31,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    *   (and others in this file).
    */
   
-  num_particles = 1000;  // TODO: Set the number of particles
+  num_particles = 2000;  // TODO: Set the number of particles
   static std::default_random_engine engine(std::random_device{}()); 
 
   std::normal_distribution<double> gaussianDistributionX(x,std[0]); 
@@ -79,14 +79,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
       double new_theta = p.theta + yaw_rate * delta_t;
       double v_over_yaw = velocity / yaw_rate;
       p.x += v_over_yaw * (sin(new_theta) - sin(p.theta));
-      p.y += v_over_yaw * (cos(p.theta) - cos(new_theta)); // <-- corrected
+      p.y += v_over_yaw * (cos(p.theta) - cos(new_theta)); 
       p.theta = new_theta;
     } else {
       p.x += velocity * delta_t * cos(p.theta);
       p.y += velocity * delta_t * sin(p.theta);
     }
 
-        // Add Gaussian noise
         p.x += noiseX(engine);
         p.y += noiseY(engine);
         p.theta += noiseTheta(engine);
@@ -161,13 +160,11 @@ double std_x = std_landmark[0];
         double weight = 1.0;
 
         for (const auto &obs : observations) {
-            // Transform observation to map coordinates
             double x_map = p.x + cos(p.theta) * obs.x - sin(p.theta) * obs.y;
             double y_map = p.y + sin(p.theta) * obs.x + cos(p.theta) * obs.y;
 
-            // Find nearest landmark within sensor range
             LandmarkObs nearest;
-            double min_dist_sq = sensor_range * sensor_range; // squared distance
+            double min_dist_sq = sensor_range * sensor_range; 
             for (const auto &lm : map_landmarks.landmark_list) {
                 double dx = x_map - lm.x_f;
                 double dy = y_map - lm.y_f;
@@ -178,20 +175,18 @@ double std_x = std_landmark[0];
                 }
             }
 
-            // Multivariate Gaussian probability
             double dx = x_map - nearest.x;
             double dy = y_map - nearest.y;
             double gauss_norm = 1.0 / (2.0 * M_PI * std_x * std_y);
             double prob = gauss_norm * exp(-(dx*dx/(2*std_x*std_x) + dy*dy/(2*std_y*std_y)));
 
-            weight *= (prob > 0) ? prob : 1e-10; // prevent zero
+            weight *= (prob > 0) ? prob : 1e-10; 
         }
 
         p.weight = weight;
         weights[i] = weight;
     }
 
-    // Normalize
     double sum_w = std::accumulate(weights.begin(), weights.end(), 0.0);
     for (auto &p : particles) p.weight /= sum_w;
     for (auto &w : weights) w /= sum_w;
@@ -204,7 +199,7 @@ void ParticleFilter::resample() {
    * TODO: Resample particles with replacement with probability proportional 
    *   to their weight. 
    * NOTE: You may find std::discrete_distribution helpful here.
-   *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+   *   http:/en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
 
     std::cout << "-----RUNNING RESAMPLE---" << std::endl;
@@ -218,9 +213,8 @@ void ParticleFilter::resample() {
     int particleNumber = this->num_particles;
     newParticles.reserve(particleNumber);
 
-    // Normalize weights to avoid numerical instability
     double weightSum = std::accumulate(this->weights.begin(), this->weights.end(), 0.0);
-    if (weightSum < 1e-300) { // Avoid division by zero
+    if (weightSum < 1e-300) { 
         for (auto &p : this->particles) {
             p.weight = 1.0 / particleNumber;
         }
@@ -232,7 +226,6 @@ void ParticleFilter::resample() {
         }
     }
 
-    // Resampling wheel
     std::default_random_engine engine(std::random_device{}());
     std::uniform_int_distribution<int> indexDist(0, particleNumber - 1);
     int index = indexDist(engine);
@@ -248,13 +241,12 @@ void ParticleFilter::resample() {
         }
         Particle p = this->particles[index];
 
-        // Optional: add tiny noise to maintain diversity
         std::normal_distribution<double> noise(0.0,1e-10);
         p.x += noise(engine);
         p.y += noise(engine);
         p.theta += noise(engine);
 
-        p.weight = 1.0; // Reset weight after resampling
+        p.weight = 1.0; 
         newParticles.push_back(p);
     }
 
